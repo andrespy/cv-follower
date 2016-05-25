@@ -6,6 +6,8 @@ class ImageProcessor(object):
     def __init__(self):
         self.capture = cv2.VideoCapture(0)
         self.matcher = lambda x: NotImplemented()
+        self.marker = 0
+        self.x = 0
 
     @property
     def frame(self):
@@ -18,24 +20,39 @@ class ImageProcessor(object):
     def play(self):
 
         while True:
-            cv2.imshow('frame', self.process(self.frame))
+            frame, mask, res = self.process(self.frame)
+            cv2.imshow('frame', frame)
+            cv2.imshow('mask', mask)
+            cv2.imshow('res', res)
 
-            if cv2.waitKey(10) == ord('q'):
+            if cv2.waitKey(1) == ord('q'):
                 break
         self.stop()
 
     def process(self, frame):
-        frame = np.array(frame)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        R_filter = frame[:, :, 0] < frame[:, :, 1] - 20
-        B_filter = frame[:, :, 2] < frame[:, :, 1] - 20
-        G_filter = frame[:, :, 1] > 50
+        self.x += 1
+        self.x %= 170
 
-        RGB_filter = R_filter * G_filter * B_filter
-        image = np.zeros(frame.shape)
-        image[RGB_filter, :] = 255
+        lower_green = np.array([self.x, 0, 0])
+        upper_green = np.array([self.x+10, 255, 255])
 
-        return image
+        mask = cv2.inRange(hsv, lower_green, upper_green)
+
+        res = cv2.bitwise_and(frame, frame, mask=mask)
+
+        return frame, mask, res
+
+    def process_order_line(self, order_line):
+        pass
+
+    def update_config(self):
+        with open('config.log', 'r') as orders_file:
+            orders_file.seek(self.marker)
+            for order_line in orders_file:
+                self.process_order_line(order_line)
+            self.marker = orders_file.tell()
 
     def stop(self):
         self.capture.release()
