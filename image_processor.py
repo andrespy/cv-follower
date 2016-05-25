@@ -20,7 +20,7 @@ class ImageProcessor(object):
         while True:
             cv2.imshow('frame', self.process(self.frame))
 
-            if cv2.waitKey(1) and 0xFF == ord('q'):
+            if cv2.waitKey(10) == ord('q'):
                 break
         self.stop()
 
